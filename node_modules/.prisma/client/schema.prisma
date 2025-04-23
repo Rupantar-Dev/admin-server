@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AddToCartTracker {
+  id           String       @id
+  tryOnId      String       @unique
+  productUrl   String
+  productName  String
+  productImage String
+  location     String?
+  timestamp    DateTime     @default(now())
+  shop         String
+  TryOnTracker TryOnTracker @relation(fields: [tryOnId], references: [id])
+
+  @@index([timestamp])
+}
+
+model CreditUsage {
+  id               String           @id
+  shop             String           @unique
+  totalCredits     Int              @default(1000)
+  usedCredits      Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  ShopSubscription ShopSubscription @relation(fields: [shop], references: [shopDomain])
+
+  @@index([totalCredits])
+  @@index([usedCredits])
+}
+
+model CustomerData {
+  id                String   @id
+  shopDomain        String
+  shopifyCustomerId String
+  customerData      Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  Shop              Shop     @relation(fields: [shopDomain], references: [shopDomain])
+
+  @@index([shopDomain, shopifyCustomerId])
+}
+
+model DataRequest {
+  id                String   @id
+  requestId         String   @unique
+  shopDomain        String
+  shopifyCustomerId String
+  requestData       Json
+  status            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  Shop              Shop     @relation(fields: [shopDomain], references: [shopDomain])
+
+  @@index([requestId])
+  @@index([shopDomain, shopifyCustomerId])
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+}
+
+model Shop {
+  id           String         @id
+  shopDomain   String         @unique
+  accessToken  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  CustomerData CustomerData[]
+  DataRequest  DataRequest[]
+
+  @@index([shopDomain])
+}
+
+model ShopSubscription {
+  id             String       @id
+  shopDomain     String       @unique
+  subscriptionId String?
+  status         String       @default("pending")
+  planPrice      Int          @default(2000)
+  trialDays      Int          @default(7)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  creditCap      Int          @default(500)
+  pocEmail       String?
+  pocName        String?
+  pocPhoneNumber String?
+  shopName       String?
+  CreditUsage    CreditUsage?
+}
+
+model TryOnTracker {
+  id               String            @id
+  productUrl       String
+  productName      String
+  productImage     String
+  clickCount       Int               @default(0)
+  location         String?
+  timestamp        DateTime          @default(now())
+  shop             String
+  AddToCartTracker AddToCartTracker?
+
+  @@index([clickCount])
+  @@index([timestamp])
+}
+
+model WebhookEvent {
+  id           String   @id
+  topic        String
+  shopDomain   String
+  success      Boolean
+  errorDetails String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([shopDomain])
+  @@index([topic])
+}
